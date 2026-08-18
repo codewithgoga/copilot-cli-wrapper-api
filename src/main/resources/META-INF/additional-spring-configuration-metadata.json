@@ -1,0 +1,34 @@
+{
+  "properties": [
+    {
+      "name": "copilot.cli.command",
+      "type": "java.lang.String",
+      "description": "Executable command used to invoke GitHub CLI."
+    },
+    {
+      "name": "copilot.cli.subcommand",
+      "type": "java.lang.String",
+      "description": "Copilot subcommand passed to the GitHub CLI."
+    },
+    {
+      "name": "copilot.cli.default-model",
+      "type": "java.lang.String",
+      "description": "Default model used when the request does not include one."
+    },
+    {
+      "name": "copilot.cli.disable-builtin-mcps",
+      "type": "java.lang.Boolean",
+      "description": "Disable built-in MCPs in Copilot CLI execution."
+    },
+    {
+      "name": "copilot.cli.no-custom-instructions",
+      "type": "java.lang.Boolean",
+      "description": "Disable custom instructions during Copilot CLI execution."
+    },
+    {
+      "name": "copilot.cli.no-ask-user",
+      "type": "java.lang.Boolean",
+      "description": "Prevent interactive prompts from Copilot CLI execution."
+    }
+  ]
+}

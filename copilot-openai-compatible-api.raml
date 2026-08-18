@@ -1,0 +1,953 @@
+#%RAML 1.0
+title: Copilot OpenAI-Compatible API
+version: v1
+baseUri: https://api.example.com/v1
+mediaType: application/json
+protocols: [ HTTPS ]
+
+documentation:
+  - title: Overview
+    content: |
+      OpenAI-compatible REST facade for a GitHub Copilot CLI/SDK backend.
+      The primary Spring AI integration endpoints are /models and
+      /chat/completions. Responses, embeddings, files, moderation, images,
+      audio, and batches are included as optional compatibility endpoints.
+
+securitySchemes:
+  bearerAuth:
+    description: Bearer API key authentication.
+    type: OAuth 2.0
+    describedBy:
+      headers:
+        Authorization:
+          description: Bearer API key.
+          type: string
+          required: true
+      responses:
+        401:
+          body:
+            application/json:
+              type: ErrorResponse
+
+securedBy: [ bearerAuth ]
+
+types:
+
+  ModelObject:
+    type: object
+    properties:
+      id: string
+      object:
+        type: string
+        example: model
+      created:
+        type: integer
+        format: int64
+        required: false
+      owned_by:
+        type: string
+        required: false
+
+  ModelListResponse:
+    type: object
+    properties:
+      object:
+        type: string
+        example: list
+      data: ModelObject[]
+
+  ChatMessage:
+    type: object
+    properties:
+      role:
+        type: string
+        enum: [ system, user, assistant, tool, developer ]
+      content:
+        type: any
+        required: false
+      name:
+        type: string
+        required: false
+      tool_call_id:
+        type: string
+        required: false
+      tool_calls:
+        type: ToolCall[]
+        required: false
+
+  FunctionDefinition:
+    type: object
+    properties:
+      name: string
+      description:
+        type: string
+        required: false
+      parameters:
+        type: object
+        required: false
+
+  FunctionCall:
+    type: object
+    properties:
+      name: string
+      arguments: string
+
+  ToolCall:
+    type: object
+    properties:
+      id: string
+      type:
+        type: string
+        example: function
+      function: FunctionCall
+
+  ChatTool:
+    type: object
+    properties:
+      type:
+        type: string
+        example: function
+      function: FunctionDefinition
+
+  StreamOptions:
+    type: object
+    properties:
+      include_usage:
+        type: boolean
+        required: false
+
+  ResponseFormat:
+    type: object
+    properties:
+      type:
+        type: string
+        enum: [ text, json_object, json_schema ]
+      json_schema:
+        type: JsonSchemaDefinition
+        required: false
+
+  JsonSchemaDefinition:
+    type: object
+    properties:
+      name: string
+      description:
+        type: string
+        required: false
+      strict:
+        type: boolean
+        required: false
+      schema:
+        type: object
+
+  ChatCompletionRequest:
+    type: object
+    properties:
+      model: string
+      messages: ChatMessage[]
+      temperature:
+        type: number
+        required: false
+      top_p:
+        type: number
+        required: false
+      n:
+        type: integer
+        required: false
+      stream:
+        type: boolean
+        required: false
+        default: false
+      stream_options:
+        type: StreamOptions
+        required: false
+      max_tokens:
+        type: integer
+        required: false
+      max_completion_tokens:
+        type: integer
+        required: false
+      presence_penalty:
+        type: number
+        required: false
+      frequency_penalty:
+        type: number
+        required: false
+      logit_bias:
+        type: object
+        required: false
+      stop:
+        type: string[]
+        required: false
+      user:
+        type: string
+        required: false
+      tools:
+        type: ChatTool[]
+        required: false
+      tool_choice:
+        type: any
+        required: false
+      parallel_tool_calls:
+        type: boolean
+        required: false
+      response_format:
+        type: ResponseFormat
+        required: false
+      metadata:
+        type: object
+        required: false
+
+  Usage:
+    type: object
+    properties:
+      prompt_tokens:
+        type: integer
+      completion_tokens:
+        type: integer
+      total_tokens:
+        type: integer
+
+  ChatChoice:
+    type: object
+    properties:
+      index: integer
+      message: ChatMessage
+      finish_reason:
+        type: string
+        required: false
+
+  ChatCompletionResponse:
+    type: object
+    properties:
+      id: string
+      object:
+        type: string
+        example: chat.completion
+      created:
+        type: integer
+        format: int64
+      model: string
+      choices: ChatChoice[]
+      usage:
+        type: Usage
+        required: false
+
+  Delta:
+    type: object
+    properties:
+      role:
+        type: string
+        required: false
+      content:
+        type: any
+        required: false
+      tool_calls:
+        type: ToolCall[]
+        required: false
+
+  ChunkChoice:
+    type: object
+    properties:
+      index: integer
+      delta: Delta
+      finish_reason:
+        type: string
+        required: false
+
+  ChatCompletionChunk:
+    type: object
+    properties:
+      id: string
+      object:
+        type: string
+        example: chat.completion.chunk
+      created:
+        type: integer
+        format: int64
+      model: string
+      choices: ChunkChoice[]
+      usage:
+        type: Usage
+        required: false
+
+  ResponseTool:
+    type: object
+    properties:
+      type: string
+      function:
+        type: FunctionDefinition
+        required: false
+
+  ResponseContent:
+    type: object
+    properties:
+      type: string
+      text:
+        type: string
+        required: false
+
+  ResponseOutput:
+    type: object
+    properties:
+      type: string
+      id:
+        type: string
+        required: false
+      role:
+        type: string
+        required: false
+      content:
+        type: ResponseContent[]
+        required: false
+
+  ResponseRequest:
+    type: object
+    properties:
+      model: string
+      input: any
+      instructions:
+        type: string
+        required: false
+      stream:
+        type: boolean
+        required: false
+      temperature:
+        type: number
+        required: false
+      max_output_tokens:
+        type: integer
+        required: false
+      tools:
+        type: ResponseTool[]
+        required: false
+      tool_choice:
+        type: any
+        required: false
+      response_format:
+        type: ResponseFormat
+        required: false
+      metadata:
+        type: object
+        required: false
+
+  ResponseUsage:
+    type: object
+    properties:
+      input_tokens:
+        type: integer
+        required: false
+      output_tokens:
+        type: integer
+        required: false
+      total_tokens:
+        type: integer
+        required: false
+
+  ResponseObject:
+    type: object
+    properties:
+      id: string
+      object:
+        type: string
+        example: response
+      created_at:
+        type: integer
+        format: int64
+      model: string
+      output: ResponseOutput[]
+      status: string
+      usage:
+        type: ResponseUsage
+        required: false
+
+  EmbeddingRequest:
+    type: object
+    properties:
+      model: string
+      input: any
+      encoding_format:
+        type: string
+        enum: [ float, base64 ]
+        required: false
+      dimensions:
+        type: integer
+        required: false
+      user:
+        type: string
+        required: false
+
+  EmbeddingData:
+    type: object
+    properties:
+      object:
+        type: string
+        example: embedding
+      index: integer
+      embedding: number[]
+
+  EmbeddingUsage:
+    type: object
+    properties:
+      prompt_tokens: integer
+      total_tokens: integer
+
+  EmbeddingResponse:
+    type: object
+    properties:
+      object:
+        type: string
+        example: list
+      data: EmbeddingData[]
+      model: string
+      usage: EmbeddingUsage
+
+  FileObject:
+    type: object
+    properties:
+      id: string
+      object:
+        type: string
+        example: file
+      bytes:
+        type: integer
+      created_at:
+        type: integer
+        format: int64
+      filename: string
+      purpose: string
+      status:
+        type: string
+        required: false
+
+  ModerationRequest:
+    type: object
+    properties:
+      model: string
+      input: any
+
+  ModerationResult:
+    type: object
+    properties:
+      flagged: boolean
+      categories:
+        type: object
+      category_scores:
+        type: object
+
+  ModerationResponse:
+    type: object
+    properties:
+      id: string
+      model: string
+      results: ModerationResult[]
+
+  ImageGenerationRequest:
+    type: object
+    properties:
+      model: string
+      prompt: string
+      n:
+        type: integer
+        required: false
+      quality:
+        type: string
+        required: false
+      size:
+        type: string
+        required: false
+      response_format:
+        type: string
+        required: false
+      user:
+        type: string
+        required: false
+
+  ImageData:
+    type: object
+    properties:
+      url:
+        type: string
+        required: false
+      b64_json:
+        type: string
+        required: false
+
+  ImageGenerationResponse:
+    type: object
+    properties:
+      created:
+        type: integer
+        format: int64
+      data: ImageData[]
+
+  BatchRequest:
+    type: object
+    properties:
+      input_file_id: string
+      endpoint: string
+      completion_window: string
+      metadata:
+        type: object
+        required: false
+
+  BatchObject:
+    type: object
+    properties:
+      id: string
+      object:
+        type: string
+        example: batch
+      status: string
+      input_file_id: string
+      output_file_id:
+        type: string
+        required: false
+      error_file_id:
+        type: string
+        required: false
+      created_at:
+        type: integer
+        format: int64
+
+  Error:
+    type: object
+    properties:
+      message: string
+      type: string
+      param:
+        type: string
+        required: false
+      code:
+        type: string
+        required: false
+
+  ErrorResponse:
+    type: object
+    properties:
+      error: Error
+
+/v1/models:
+  get:
+    description: List models exposed by the Copilot-backed gateway.
+    responses:
+      200:
+        body:
+          application/json:
+            type: ModelListResponse
+      401:
+        body:
+          application/json:
+            type: ErrorResponse
+
+/v1/models/{model}:
+  uriParameters:
+    model:
+      type: string
+  get:
+    description: Retrieve metadata for a single model.
+    responses:
+      200:
+        body:
+          application/json:
+            type: ModelObject
+      401:
+        body:
+          application/json:
+            type: ErrorResponse
+      404:
+        body:
+          application/json:
+            type: ErrorResponse
+
+/v1/chat/completions:
+  post:
+    description: |
+      OpenAI-compatible Chat Completions endpoint. This is the primary
+      endpoint for Spring AI OpenAI ChatModel connectivity.
+    body:
+      application/json:
+        type: ChatCompletionRequest
+    responses:
+      200:
+        description: Non-streaming response when stream is false or omitted.
+        body:
+          application/json:
+            type: ChatCompletionResponse
+      200:
+        description: Streaming SSE response when stream is true.
+        headers:
+          Content-Type:
+            type: string
+            example: text/event-stream
+        body:
+          text/event-stream:
+            type: string
+            example: |
+              data: {"id":"chatcmpl-123","object":"chat.completion.chunk","created":1786300000,"model":"gpt-5","choices":[{"index":0,"delta":{"role":"assistant"},"finish_reason":null}]}
+
+              data: {"id":"chatcmpl-123","object":"chat.completion.chunk","created":1786300000,"model":"gpt-5","choices":[{"index":0,"delta":{"content":"Hello"},"finish_reason":null}]}
+
+              data: {"id":"chatcmpl-123","object":"chat.completion.chunk","created":1786300000,"model":"gpt-5","choices":[{"index":0,"delta":{},"finish_reason":"stop"}]}
+
+              data: [DONE]
+      400:
+        body:
+          application/json:
+            type: ErrorResponse
+      401:
+        body:
+          application/json:
+            type: ErrorResponse
+      403:
+        body:
+          application/json:
+            type: ErrorResponse
+      404:
+        body:
+          application/json:
+            type: ErrorResponse
+      429:
+        body:
+          application/json:
+            type: ErrorResponse
+      500:
+        body:
+          application/json:
+            type: ErrorResponse
+      504:
+        body:
+          application/json:
+            type: ErrorResponse
+
+/v1/responses:
+  post:
+    description: Optional newer response-oriented compatibility endpoint.
+    body:
+      application/json:
+        type: ResponseRequest
+    responses:
+      200:
+        body:
+          application/json:
+            type: ResponseObject
+      400:
+        body:
+          application/json:
+            type: ErrorResponse
+      401:
+        body:
+          application/json:
+            type: ErrorResponse
+      404:
+        body:
+          application/json:
+            type: ErrorResponse
+      429:
+        body:
+          application/json:
+            type: ErrorResponse
+      500:
+        body:
+          application/json:
+            type: ErrorResponse
+
+/v1/embeddings:
+  post:
+    description: Optional. Implement only when a real embedding provider is available.
+    body:
+      application/json:
+        type: EmbeddingRequest
+    responses:
+      200:
+        body:
+          application/json:
+            type: EmbeddingResponse
+      400:
+        body:
+          application/json:
+            type: ErrorResponse
+      401:
+        body:
+          application/json:
+            type: ErrorResponse
+      404:
+        body:
+          application/json:
+            type: ErrorResponse
+      500:
+        body:
+          application/json:
+            type: ErrorResponse
+
+/v1/files:
+  post:
+    description: Optional file upload compatibility endpoint.
+    body:
+      multipart/form-data:
+        properties:
+          file:
+            type: file
+          purpose:
+            type: string
+    responses:
+      200:
+        body:
+          application/json:
+            type: FileObject
+      400:
+        body:
+          application/json:
+            type: ErrorResponse
+      401:
+        body:
+          application/json:
+            type: ErrorResponse
+
+  get:
+    description: List uploaded files.
+    responses:
+      200:
+        body:
+          application/json:
+            type: FileObject[]
+      401:
+        body:
+          application/json:
+            type: ErrorResponse
+
+/v1/files/{file_id}:
+  uriParameters:
+    file_id:
+      type: string
+  get:
+    description: Retrieve file metadata.
+    responses:
+      200:
+        body:
+          application/json:
+            type: FileObject
+      401:
+        body:
+          application/json:
+            type: ErrorResponse
+      404:
+        body:
+          application/json:
+            type: ErrorResponse
+
+  delete:
+    description: Delete an uploaded file.
+    responses:
+      200:
+        body:
+          application/json:
+            type: FileObject
+      401:
+        body:
+          application/json:
+            type: ErrorResponse
+      404:
+        body:
+          application/json:
+            type: ErrorResponse
+
+/v1/moderations:
+  post:
+    description: Optional content moderation endpoint.
+    body:
+      application/json:
+        type: ModerationRequest
+    responses:
+      200:
+        body:
+          application/json:
+            type: ModerationResponse
+      400:
+        body:
+          application/json:
+            type: ErrorResponse
+      401:
+        body:
+          application/json:
+            type: ErrorResponse
+      500:
+        body:
+          application/json:
+            type: ErrorResponse
+
+/v1/images/generations:
+  post:
+    description: Optional image generation endpoint. Not normally backed by Copilot CLI.
+    body:
+      application/json:
+        type: ImageGenerationRequest
+    responses:
+      200:
+        body:
+          application/json:
+            type: ImageGenerationResponse
+      400:
+        body:
+          application/json:
+            type: ErrorResponse
+      401:
+        body:
+          application/json:
+            type: ErrorResponse
+      500:
+        body:
+          application/json:
+            type: ErrorResponse
+
+/v1/audio/transcriptions:
+  post:
+    description: Optional speech-to-text endpoint. Requires an external audio model.
+    body:
+      multipart/form-data:
+        properties:
+          file:
+            type: file
+          model:
+            type: string
+          language:
+            type: string
+            required: false
+          prompt:
+            type: string
+            required: false
+    responses:
+      200:
+        body:
+          application/json:
+            type: object
+            properties:
+              text: string
+      400:
+        body:
+          application/json:
+            type: ErrorResponse
+      401:
+        body:
+          application/json:
+            type: ErrorResponse
+      500:
+        body:
+          application/json:
+            type: ErrorResponse
+
+/v1/audio/speech:
+  post:
+    description: Optional text-to-speech endpoint. Requires an external audio model.
+    body:
+      application/json:
+        type: object
+        properties:
+          model: string
+          input: string
+          voice: string
+          response_format:
+            type: string
+            required: false
+          speed:
+            type: number
+            required: false
+    responses:
+      200:
+        headers:
+          Content-Type:
+            type: string
+        body:
+          application/octet-stream:
+            type: string
+      400:
+        body:
+          application/json:
+            type: ErrorResponse
+      401:
+        body:
+          application/json:
+            type: ErrorResponse
+      500:
+        body:
+          application/json:
+            type: ErrorResponse
+
+/v1/batches:
+  post:
+    description: Optional asynchronous batch processing endpoint.
+    body:
+      application/json:
+        type: BatchRequest
+    responses:
+      200:
+        body:
+          application/json:
+            type: BatchObject
+      400:
+        body:
+          application/json:
+            type: ErrorResponse
+      401:
+        body:
+          application/json:
+            type: ErrorResponse
+      500:
+        body:
+          application/json:
+            type: ErrorResponse
+
+  get:
+    description: List batches.
+    responses:
+      200:
+        body:
+          application/json:
+            type: BatchObject[]
+      401:
+        body:
+          application/json:
+            type: ErrorResponse
+
+/v1/batches/{batch_id}:
+  uriParameters:
+    batch_id:
+      type: string
+  get:
+    description: Retrieve batch status.
+    responses:
+      200:
+        body:
+          application/json:
+            type: BatchObject
+      401:
+        body:
+          application/json:
+            type: ErrorResponse
+      404:
+        body:
+          application/json:
+            type: ErrorResponse
+
+/v1/batches/{batch_id}/cancel:
+  uriParameters:
+    batch_id:
+      type: string
+  post:
+    description: Cancel a running batch.
+    responses:
+      200:
+        body:
+          application/json:
+            type: BatchObject
+      401:
+        body:
+          application/json:
+            type: ErrorResponse
+      404:
+        body:
+          application/json:
+            type: ErrorResponse
+      409:
+        body:
+          application/json:
+            type: ErrorResponse

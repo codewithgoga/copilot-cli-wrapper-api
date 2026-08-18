@@ -1,0 +1,38 @@
+spring:
+  application:
+    name: copilot-cli-wrapper-api
+
+server:
+  port: ${PORT:8080}
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+
+copilot:
+  cli:
+    command: ${COPILOT_CLI_COMMAND:gh}
+    subcommand: ${COPILOT_CLI_SUBCOMMAND:copilot}
+    default-model: ${COPILOT_MODEL:auto}
+    disable-builtin-mcps: ${COPILOT_DISABLE_BUILTIN_MCPS:true}
+    no-custom-instructions: ${COPILOT_NO_CUSTOM_INSTRUCTIONS:true}
+    no-ask-user: ${COPILOT_NO_ASK_USER:true}
+
+logging:
+  pattern:
+    level: "%5p [cid:%X{correlationId}]"
+  level:
+    root: ${LOG_LEVEL_ROOT:INFO}
+    "[com.gd.copilotapi]": ${LOG_LEVEL_APP:INFO}
+
+---
+spring:
+  config:
+    activate:
+      on-profile: dev
+
+logging:
+  level:
+    "[com.gd.copilotapi]": ${LOG_LEVEL_APP_DEV:DEBUG}
